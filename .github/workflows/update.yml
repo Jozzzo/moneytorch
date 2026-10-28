@@ -1,0 +1,83 @@
+name: Update prices
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # GitHub may start scheduled runs late, especially at busy times
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: write   # to delete old database caches
+
+# never two runs on the same database at once; a newer queued run waits for the current one
+concurrency:
+  group: update-prices
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      # the H2 database and icons live in the Actions cache between runs, not in git;
+      # if the cache is ever lost, the next runs simply download the history again
+      - name: Restore database
+        uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: mt-data-${{ github.run_id }}
+          restore-keys: mt-data-
+
+      - name: Build
+        run: mvn -B -q -DskipTests package
+
+      - name: Collect prices and export site
+        run: |
+          mkdir -p site
+          cp -r src/main/resources/static/. site/
+          java -jar target/moneytorch-0.1.0.jar \
+            --moneytorch.mode=export \
+            --spring.main.web-application-type=none \
+            --moneytorch.export-dir=site \
+            --moneytorch.backfill.budget-minutes=90
+
+      - name: Save database
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data
+          key: mt-data-${{ github.run_id }}
+
+      - name: Delete older database caches
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh cache list --repo "$GITHUB_REPOSITORY" --key mt-data- --limit 100 --json key --jq '.[].key' \
+            | grep -v "^mt-data-${{ github.run_id }}$" \
+            | xargs -r -n1 gh cache delete --repo "$GITHUB_REPOSITORY" || true
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>moneyTorch</title>
+    <link rel="icon" href="icons/100300.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.30/dist/uPlot.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" href="#/">
+        <img src="icons/100300.png" alt="">
+        <span>money<b>Torch</b></span>
+    </a>
+    <nav class="tabs">
+        <a id="tabPrices" href="#/">Prices</a>
+        <a id="tabFlips" href="#/">Flips</a>
+    </nav>
+    <div class="global-search">
+        <input type="search" id="globalSearch" placeholder="Search any item…" autocomplete="off">
+        <div id="searchResults" class="search-results" hidden></div>
+    </div>
+    <div class="controls">
+        <label>Season
+            <select id="season"></select>
+        </label>
+        <label>Source
+            <select id="source">
+                <option value="poebench">PoeBench</option>
+                <option value="etor">ETor</option>
+                <option value="community">Community</option>
+            </select>
+        </label>
+        <label>Names
+            <select id="lang">
+                <option value="en">EN</option>
+                <option value="ru">RU</option>
+            </select>
+        </label>
+    </div>
+</header>
+
+<div class="layout">
+    <nav id="sidebar" class="sidebar"></nav>
+    <main id="main" class="main"></main>
+</div>
+
+<footer id="status" class="status"></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/uplot@1.6.30/dist/uPlot.iife.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
