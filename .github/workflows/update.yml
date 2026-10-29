@@ -25,7 +25,13 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
+    outputs:
+      started: ${{ steps.start.outputs.time }}
     steps:
+      - name: Remember start time
+        id: start
+        run: echo "time=$(date +%s)" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-java@v4
@@ -81,3 +87,24 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deploy
         uses: actions/deploy-pages@v4
+
+  # GitHub often drops scheduled runs, so each run starts the next one itself,
+  # 30 minutes after it started; the cron above only restarts the chain if it breaks.
+  # Extra chains die out on their own: the concurrency group keeps at most one pending run.
+  next:
+    needs: update
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Wait until 30 minutes after the start
+        env:
+          STARTED: ${{ needs.update.outputs.started }}
+        run: |
+          wait=$(( ${STARTED:-0} + 1800 - $(date +%s) ))
+          if [ "$wait" -gt 0 ]; then sleep "$wait"; fi
+
+      - name: Start the next run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run update.yml --repo "$GITHUB_REPOSITORY" --ref main
