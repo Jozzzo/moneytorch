@@ -27,7 +27,7 @@ import java.util.TreeMap;
 @RestController
 @RequestMapping("/api")
 public class ApiController {
-    private static final Set<String> SOURCES = Set.of("poebench", "etor", "community");
+    private static final Set<String> SOURCES = Set.of("poebench");
 
     private final CatalogService catalog;
     private final OverviewService overview;
@@ -113,7 +113,7 @@ public class ApiController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown item " + id);
         }
         Map<String, Object> series = new LinkedHashMap<>();
-        for (String source : List.of("poebench", "etor", "community")) {
+        for (String source : SOURCES) {
             series.put(source, points(repo.history(id, season, source)));
         }
         long[] bounds = repo.seasonBounds(season);

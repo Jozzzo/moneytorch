@@ -4,13 +4,11 @@ const DAY = 86400000;
 const FE_ICON = 'icons/100300.png';
 const SOURCES = [
     {key: 'poebench', label: 'PoeBench', color: '#60a5fa'},
-    {key: 'etor', label: 'ETor', color: '#fbbf24'},
-    {key: 'community', label: 'Community', color: '#4ade80'},
 ];
 
 const state = {
     meta: null,
-    source: load('source', 'poebench'),
+    source: 'poebench',
     lang: load('lang', 'en'),
     sort: {key: 'price', asc: false},
     search: '',
@@ -358,16 +356,12 @@ async function renderItem(season, id) {
     const d = await DATA.item(id, season);
     const item = d.item;
     const seasonLabel = state.meta.seasons.find(s => s.id === season)?.label || season;
-    const main = d.series[state.source].length ? state.source : SOURCES.find(s => d.series[s.key].length)?.key || state.source;
-    const mainPts = d.series[main];
+    const mainPts = d.series[state.source] || [];
 
-    const cards = SOURCES.map(s => {
-        const pts = d.series[s.key];
-        const last = pts[pts.length - 1];
-        return `<div class="card"><div class="k"><span class="swatch" style="background:${s.color}"></span> ${s.label}</div>
-            <div class="v">${last ? fmtPrice(last[1]) : '—'}</div>
-            <div class="d">${last ? ago(last[0]) : 'no data'}</div></div>`;
-    });
+    const lastPt = mainPts[mainPts.length - 1];
+    const cards = [`<div class="card"><div class="k">Price</div>
+            <div class="v">${lastPt ? fmtPrice(lastPt[1]) : '—'}</div>
+            <div class="d">${lastPt ? ago(lastPt[0]) : 'no data'}</div></div>`];
     if (mainPts.length) {
         const prices = mainPts.map(p => p[1]);
         const min = mainPts.reduce((a, b) => b[1] < a[1] ? b : a);
@@ -398,26 +392,21 @@ async function renderItem(season, id) {
                 <div class="group" id="ranges">
                     <button data-r="1">24h</button><button data-r="7">7d</button><button data-r="30">30d</button><button data-r="0" class="on">Season</button>
                 </div>
-                ${SOURCES.map(s => `<label><input type="checkbox" data-src="${s.key}" checked><span class="swatch" style="background:${s.color}"></span>${s.label}</label>`).join('')}
                 ${d.compare && d.compare.points.length ? `<label><input type="checkbox" id="cmp"><span class="swatch" style="background:#9e9e9e"></span>${esc(d.compare.label)} (aligned to season start)</label>` : ''}
                 <label><input type="checkbox" id="logScale">log scale</label>
             </div>
             <div id="chart"></div>
         </div>
         <div class="panel">
-            <h3 style="margin:0 0 8px">Daily · ${esc(SOURCES.find(s => s.key === main).label)}</h3>
+            <h3 style="margin:0 0 8px">Daily</h3>
             ${dailyTable(mainPts, d.seasonStart)}
         </div>`;
 
-    const opts = {range: 0, log: false, compare: false, hidden: new Set()};
+    const opts = {range: 0, log: false, compare: false};
     const redraw = () => drawChart(d, opts);
     $('#ranges').querySelectorAll('button').forEach(b => b.onclick = () => {
         $('#ranges').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
         opts.range = Number(b.dataset.r);
-        redraw();
-    });
-    document.querySelectorAll('input[data-src]').forEach(cb => cb.onchange = () => {
-        cb.checked ? opts.hidden.delete(cb.dataset.src) : opts.hidden.add(cb.dataset.src);
         redraw();
     });
     $('#logScale').onchange = e => { opts.log = e.target.checked; redraw(); };
@@ -428,7 +417,7 @@ async function renderItem(season, id) {
 function drawChart(d, opts) {
     destroyChart();
     const el = $('#chart');
-    const lines = SOURCES.filter(s => !opts.hidden.has(s.key) && d.series[s.key].length)
+    const lines = SOURCES.filter(s => d.series[s.key]?.length)
         .map(s => ({label: s.label, color: s.color, pts: d.series[s.key]}));
     if (opts.compare && d.compare && d.seasonStart) {
         // shift the old season so its day N lands on this season's day N
@@ -1018,9 +1007,9 @@ async function renderFlips(season) {
 function renderStatus(s) {
     const bf = s.backfill === 'done' ? 'history loaded'
         : s.backfillTotal ? `loading history: ${esc(s.backfill)} ${s.backfillDone}/${s.backfillTotal}` : esc(s.backfill);
-    $('#status').innerHTML = (s.generatedAt ? `Site updated ${ago(s.generatedAt)} · ` : '') + `ETor: ${ago(s.lastEtorAt)} · TLI Prices: ${ago(s.lastTablesAt)} · ${bf}`
+    $('#status').innerHTML = (s.generatedAt ? `Site updated ${ago(s.generatedAt)} · ` : '') + `PoeBench prices: ${ago(s.lastTablesAt)} · ${bf}`
         + (s.pricePoints != null ? ` · ${s.pricePoints.toLocaleString('en-US')} price points` : '')
-        + ` · data: <a href="https://tli.re-side.dev" target="_blank" rel="noopener">TLI Prices</a>, ETor`;
+        + ` · data: <a href="https://tli.re-side.dev" target="_blank" rel="noopener">TLI Prices</a> (PoeBench)`;
 }
 
 // ---------- boot
@@ -1030,7 +1019,6 @@ async function boot() {
     $('#season').innerHTML = state.meta.seasons
         .filter(s => s.hasData || s.current)
         .map(s => `<option value="${s.id}">${esc(s.label)}${s.current ? ' (current)' : ''}</option>`).join('');
-    $('#source').value = state.source;
     $('#lang').value = state.lang;
 
     $('#season').onchange = e => {
@@ -1038,7 +1026,6 @@ async function boot() {
         parts[0] = e.target.value;
         location.hash = '#/' + parts.join('/');
     };
-    $('#source').onchange = e => { state.source = e.target.value; save('source', state.source); route(); };
     $('#lang').onchange = e => { state.lang = e.target.value; save('lang', state.lang); route(); };
     window.addEventListener('hashchange', route);
     window.addEventListener('resize', () => state.chart && state.chart.setSize({width: $('#chart').clientWidth, height: 380}));

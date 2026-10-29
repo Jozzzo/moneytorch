@@ -20,14 +20,11 @@ spring:
 
 moneytorch:
   tli-base-url: https://tli.re-side.dev
-  etor-base-urls:
-    - https://etor-zero.981001.xyz
-    - https://etor-beta.710421059.xyz
   icons-dir: ./data/icons
   backfill:
     enabled: true
     # empty = current season + previous standard season
     seasons: []
-    sources: [poebench, etor, community]
+    sources: [poebench]
     # pause between history requests, be polite to tli.re-side.dev
     delay-ms: 350

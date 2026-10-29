@@ -33,7 +33,7 @@ import java.util.Map;
 @Service
 public class SiteExporter {
     private static final Logger log = LoggerFactory.getLogger(SiteExporter.class);
-    private static final List<String> SOURCES = List.of("poebench", "etor", "community");
+    private static final List<String> SOURCES = List.of("poebench");
     private static final long HOUR = 3_600_000L;
     private static final long DAY = 24 * HOUR;
     /** hourly grid length for the in-browser hourly-pattern finder */

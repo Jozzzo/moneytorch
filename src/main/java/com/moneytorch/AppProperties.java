@@ -8,7 +8,6 @@ import java.util.List;
 @ConfigurationProperties("moneytorch")
 public class AppProperties {
     private String tliBaseUrl = "https://tli.re-side.dev";
-    private List<String> etorBaseUrls = new ArrayList<>();
     private String iconsDir = "./data/icons";
     /** server = web app with scheduled collectors; export = collect once, write a static site, exit */
     private String mode = "server";
@@ -18,7 +17,7 @@ public class AppProperties {
     public static class Backfill {
         private boolean enabled = true;
         private List<Integer> seasons = new ArrayList<>();
-        private List<String> sources = List.of("poebench", "etor", "community");
+        private List<String> sources = List.of("poebench");
         private long delayMs = 350;
         /** stop the backfill after this many minutes and continue next run; 0 = no limit */
         private long budgetMinutes = 0;
@@ -38,8 +37,6 @@ public class AppProperties {
 
     public String getTliBaseUrl() { return tliBaseUrl; }
     public void setTliBaseUrl(String tliBaseUrl) { this.tliBaseUrl = tliBaseUrl; }
-    public List<String> getEtorBaseUrls() { return etorBaseUrls; }
-    public void setEtorBaseUrls(List<String> etorBaseUrls) { this.etorBaseUrls = etorBaseUrls; }
     public String getIconsDir() { return iconsDir; }
     public void setIconsDir(String iconsDir) { this.iconsDir = iconsDir; }
     public Backfill getBackfill() { return backfill; }

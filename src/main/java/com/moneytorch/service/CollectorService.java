@@ -1,7 +1,6 @@
 package com.moneytorch.service;
 
 import com.moneytorch.db.PriceRepository;
-import com.moneytorch.source.EtorClient;
 import com.moneytorch.source.PricePoint;
 import com.moneytorch.source.TliPricesClient;
 import org.slf4j.Logger;
@@ -19,40 +18,23 @@ import java.util.Map;
 @Service
 public class CollectorService {
     private static final Logger log = LoggerFactory.getLogger(CollectorService.class);
-    private static final List<String> TABLE_SOURCES = List.of("poebench", "community");
+    private static final List<String> TABLE_SOURCES = List.of("poebench");
     /** An unchanged price from a timestamp-less table is still recorded this often. */
     private static final long KEEPALIVE_MS = 3 * 3600_000L;
 
-    private final EtorClient etor;
     private final TliPricesClient tli;
     private final PriceRepository repo;
     private final CatalogService catalog;
     private final OverviewService overview;
     private final StatusService status;
 
-    public CollectorService(EtorClient etor, TliPricesClient tli, PriceRepository repo, CatalogService catalog,
+    public CollectorService(TliPricesClient tli, PriceRepository repo, CatalogService catalog,
                             OverviewService overview, StatusService status) {
-        this.etor = etor;
         this.tli = tli;
         this.repo = repo;
         this.catalog = catalog;
         this.overview = overview;
         this.status = status;
-    }
-
-    @Scheduled(initialDelayString = "PT30S", fixedDelayString = "PT10M")
-    public void collectEtor() {
-        try {
-            int season = etor.currentSeason();
-            List<PricePoint> points = etor.snapshot(season);
-            repo.insertPoints(season, "etor", points);
-            overview.invalidate(season);
-            status.etorCollected();
-            log.info("ETor: {} prices for season {}", points.size(), season);
-        } catch (Exception e) {
-            status.error("ETor: " + e.getMessage());
-            log.warn("ETor collection failed: {}", e.getMessage());
-        }
     }
 
     @Scheduled(initialDelayString = "PT60S", fixedDelayString = "PT30M")

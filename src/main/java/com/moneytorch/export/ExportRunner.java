@@ -37,7 +37,6 @@ public class ExportRunner implements CommandLineRunner {
         int code = 0;
         try {
             backfill.runOnce(props.getBackfill().getBudgetMinutes() * 60_000L);
-            collector.collectEtor();
             collector.collectTables();
             exporter.export();
         } catch (Exception e) {
